@@ -1,0 +1,101 @@
+#include <Arduino.h>
+#include <BleKeyboard.h>
+
+#define S1_ENCODER_PIN 21
+#define S2_ENCODER_PIN 22
+#define KEY_ENCODER_PIN 5
+
+#define SLEEP_TIME 30
+
+BleKeyboard kb;
+
+int lastS1Value, wasEncoderPressed = 0;
+uint32_t whenWasEncoderPressed = 0, whenWasEncoderReleased = 0;
+bool wasMediaNextKeyPressedOnce = false;
+bool LEDState = LOW;
+uint32_t a = millis();
+
+void setup()
+{
+  Serial.begin(115200);
+  pinMode(S1_ENCODER_PIN, INPUT);
+  pinMode(S2_ENCODER_PIN, INPUT);
+  pinMode(KEY_ENCODER_PIN, INPUT);
+  pinMode(BUILTIN_LED, OUTPUT);
+
+  kb.begin();
+
+  lastS1Value = digitalRead(S1_ENCODER_PIN);
+}
+
+void loop()
+{
+  // Check if encoder is pressed
+  bool isEncoderPressed = !digitalRead(KEY_ENCODER_PIN);
+
+  // Check when the encoder was pressed and released
+  if (isEncoderPressed == 1 && wasEncoderPressed == 0)
+  {
+    whenWasEncoderPressed = millis();
+  }
+  else if (isEncoderPressed == 0 && wasEncoderPressed == 1)
+  {
+    whenWasEncoderReleased = millis();
+  }
+  int delta = whenWasEncoderReleased - whenWasEncoderPressed;
+
+  if (kb.isConnected())
+  {
+    // Turn off the built in LED
+    digitalWrite(BUILTIN_LED, LOW);
+
+    // Rotary encoder boilerplate
+    bool s1Value = digitalRead(S1_ENCODER_PIN);
+    if (s1Value != lastS1Value)
+    {
+      if (digitalRead(S2_ENCODER_PIN) != s1Value)
+      {
+        kb.write(KEY_MEDIA_VOLUME_UP);
+      }
+      else
+      {
+        kb.write(KEY_MEDIA_VOLUME_DOWN);
+      }
+    }
+
+    // Short press
+    else if (isEncoderPressed == 0 && wasEncoderPressed == 1 && delta < 500)
+    {
+      kb.write(KEY_MEDIA_PLAY_PAUSE);
+    }
+
+    // Long press
+    else if (isEncoderPressed == 1 && wasEncoderPressed == 1 && millis() - whenWasEncoderPressed > 500)
+    {
+      if (!wasMediaNextKeyPressedOnce)
+      {
+        kb.write(KEY_MEDIA_NEXT_TRACK);
+        wasMediaNextKeyPressedOnce = true;
+      }
+    }
+
+    // Debounce press so it doesn't spam MEDIA_NEXT_TRACK
+    else if (isEncoderPressed == 0 && wasEncoderPressed == 0)
+    {
+      wasMediaNextKeyPressedOnce = false;
+    }
+
+    lastS1Value = s1Value;
+    wasEncoderPressed = isEncoderPressed;
+  }
+  else
+  {
+    digitalWrite(BUILTIN_LED, !LEDState);
+    if (millis() - a >= 800)
+    {
+      digitalWrite(BUILTIN_LED, LEDState);
+      LEDState = !LEDState;
+      a = millis();
+    }
+  }
+}
