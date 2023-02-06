@@ -94,65 +94,64 @@ void setup()
 
 void loop()
 {
-  // Make sure built-in LED is off
-  LED_state = LOW;
-  digitalWrite(BUILTIN_LED, LED_state);
-
-  e.updateValues();
-
-  // Rotation part of the encoder
-  switch (e.getRotationDirection())
+  while (kb.isConnected())
   {
-  case -1:
-    // Serial.println("Left");
-    for (int i = 0; i < KEY_SEND_MULTIPLIER; i++)
-    {
-      kb.write(KEY_MEDIA_VOLUME_DOWN);
-    }
-    break;
-  case 1:
-    // Serial.println("Right");
-    for (int i = 0; i < KEY_SEND_MULTIPLIER; i++)
-    {
-      kb.write(KEY_MEDIA_VOLUME_UP);
-    }
-    break;
-  default:
-    break;
-  }
-
-  // Button part of the encoder
-  if (!e.getButtonStates().first && e.getButtonStates().second)
-  {
-    ms = millis(); 
-  }
-  if (millis() - ms > BUTTON_HOLD_TIME && e.getButtonStates().second && !block_hold)
-  {
-    // Serial.println("MEDIA NEXT");
-    kb.write(KEY_MEDIA_NEXT_TRACK);
-    block_hold = true;
-    delay(30); // Sometimes it also sends play/pause, I suppose this is because of bouncing, delay should solve that
-
-  }
-  if (e.getButtonStates().first && !e.getButtonStates().second && !block_hold)
-  {
-    // Serial.println("MEDIA PLAY/PAUSE");
-    kb.write(KEY_MEDIA_PLAY_PAUSE);
-    delay(30); // Sometimes the key is sent twice, I suppose this is because of bouncing, delay should solve that
-  }
-  if (e.getButtonStates().first && !e.getButtonStates().second)
-  {
-    block_hold = false;
-  }
-
-  if (!kb.isConnected())
-  {
-    // Serial.println("Disconnected!");
+    // Make sure built-in LED is off
+    LED_state = LOW;
     digitalWrite(BUILTIN_LED, LED_state);
-    if (millis() - blink_ms > 1000)
+
+    e.updateValues();
+
+    // Rotation part of the encoder
+    switch (e.getRotationDirection())
     {
-      LED_state = !LED_state;
-      blink_ms = millis();
+    case -1:
+      // Serial.println("Left");
+      for (int i = 0; i < KEY_SEND_MULTIPLIER; i++)
+      {
+        kb.write(KEY_MEDIA_VOLUME_DOWN);
+      }
+      break;
+    case 1:
+      // Serial.println("Right");
+      for (int i = 0; i < KEY_SEND_MULTIPLIER; i++)
+      {
+        kb.write(KEY_MEDIA_VOLUME_UP);
+      }
+      break;
+    default:
+      break;
     }
+
+    // Button part of the encoder
+    if (!e.getButtonStates().first && e.getButtonStates().second)
+    {
+      ms = millis();
+    }
+    if (millis() - ms > BUTTON_HOLD_TIME && e.getButtonStates().second && !block_hold)
+    {
+      // Serial.println("MEDIA NEXT");
+      kb.write(KEY_MEDIA_NEXT_TRACK);
+      block_hold = true;
+      delay(30); // Sometimes it also sends play/pause, I suppose this is because of bouncing, delay should solve that
+    }
+    if (e.getButtonStates().first && !e.getButtonStates().second && !block_hold)
+    {
+      // Serial.println("MEDIA PLAY/PAUSE");
+      kb.write(KEY_MEDIA_PLAY_PAUSE);
+      delay(30); // Sometimes the key is sent twice, I suppose this is because of bouncing, delay should solve that
+    }
+    if (e.getButtonStates().first && !e.getButtonStates().second)
+    {
+      block_hold = false;
+    }
+  }
+
+  // Serial.println("Disconnected!");
+  digitalWrite(BUILTIN_LED, LED_state);
+  if (millis() - blink_ms > 1000)
+  {
+    LED_state = !LED_state;
+    blink_ms = millis();
   }
 }
