@@ -5,8 +5,8 @@
 #define S2_ENCODER_PIN 22
 #define KEY_ENCODER_PIN 5
 
-#define KEY_SEND_MULTIPLIER 2
-#define BUTTON_HOLD_TIME 600
+#define KEY_SEND_MULTIPLIER 2     // How many times volume up/down keypresses should be sent when rotation is detected
+#define BUTTON_HOLD_TIME 600      // Time to differentiate between a short press and a holding down the button 
 
 BleKeyboard kb;
 

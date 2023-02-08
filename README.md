@@ -1,6 +1,6 @@
 # ESP32 Volume Knob
 
-Made with a rotary encoder and this voodoo trickery called bluetooth
+Made with a rotary encoder and this voodoo technology called bluetooth
 
 ## Functions:
 - Rotate left/right for volume down/up
