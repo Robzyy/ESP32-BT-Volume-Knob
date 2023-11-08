@@ -5,7 +5,7 @@
 #define S2_ENCODER_PIN 22
 #define KEY_ENCODER_PIN 5
 
-#define KEY_SEND_MULTIPLIER 2     // How many times volume up/down keypresses should be sent when rotation is detected
+#define KEY_SEND_MULTIPLIER 1     // How many times volume up/down keypresses should be sent when rotation is detected
 #define BUTTON_HOLD_TIME 600      // Time to differentiate between a short press and a holding down the button 
 
 BleKeyboard kb;
@@ -133,13 +133,13 @@ void loop()
       // Serial.println("MEDIA NEXT");
       kb.write(KEY_MEDIA_NEXT_TRACK);
       block_hold = true;
-      delay(30); // Sometimes it also sends play/pause, I suppose this is because of bouncing, delay should solve that
+      delay(100); // Sometimes it also sends play/pause, I suppose this is because of bouncing, delay should solve that
     }
     if (e.getButtonStates().first && !e.getButtonStates().second && !block_hold)
     {
       // Serial.println("MEDIA PLAY/PAUSE");
       kb.write(KEY_MEDIA_PLAY_PAUSE);
-      delay(30); // Sometimes the key is sent twice, I suppose this is because of bouncing, delay should solve that
+      delay(100); // Sometimes the key is sent twice, I suppose this is because of bouncing, delay should solve that
     }
     if (e.getButtonStates().first && !e.getButtonStates().second)
     {
