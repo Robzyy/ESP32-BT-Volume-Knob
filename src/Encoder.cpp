@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "Encoder.h"
+#include "encoder.h"
 
 #define S1_ENCODER_PIN 21
 #define S2_ENCODER_PIN 22

@@ -1,28 +1,146 @@
 #include <Arduino.h>
+#include <LiquidCrystal_I2C.h>
 #include <BleKeyboard.h>
-#include "Encoder.h"
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <SpotifyArduino.h>
+#include <SpotifyArduinoCert.h>
+#include <ArduinoJson.h>
+#include "encoder.h"
+#include "secrets.h"
+#include "customChars.h"
 
-#define BUTTON_HOLD_TIME 600 // Time (ms) to differentiate between a short press and a holding down the button
-#define LED_BLINK_FREQ 1000  // Built-in led blink frequency (ms)
+#define SPOTIFY_MARKET "RO"
+#define SPOTIFY_REFRESH_TOKEN "AQBULfG8YdwWks3ak1RSbSeRHviZlzF9tUU6H1wixBfpZyu3sg9p6TMSOrpoZ-a2bgSElEOajKEOT-BV9yFO2aMZ7ZiLoFJLWliDpIovB4nK9cIZUJTl_Ly9ToyHjOL3zAs"
+
+#define BUTTON_HOLD_TIME 600           // Time (ms) to differentiate between a short press and a holding down the button
+#define LED_BLINK_FREQ 1000            // Built-in led blink frequency (ms)
+#define SPOTIFY_REFRESH_FREQ 1000 * 20 // Time to wait before next API call to Spotify (1000 ms * seconds)
+
+enum class CustomChars
+{
+  Note,
+  Person,
+  Disk
+};
 
 BleKeyboard kb;
 
 Encoder e;
 
-uint64_t button_ms, blink_ms;
+LiquidCrystal_I2C lcd(0x27, 16, 9);
+
+uint64_t button_ms = 0, blink_ms = 0, last_spotify_api_call = 0;
 bool block_hold = false;
 bool LED_state = LOW;
+
+WiFiClientSecure client;
+SpotifyArduino spotify(client, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN);
+
+void printCurrentlyPlayingToLCD(CurrentlyPlaying currentlyPlaying)
+{
+  // Print track name
+  lcd.setCursor(0, 0);
+  lcd.write(static_cast<uint8_t>(CustomChars::Note));
+  lcd.print(' ');
+  lcd.print(currentlyPlaying.trackName);
+
+  // Print artist
+  lcd.setCursor(0, 1);
+  lcd.write(static_cast<uint8_t>(CustomChars::Person));
+  lcd.print(' ');
+  lcd.println(currentlyPlaying.artists[0].artistName);
+}
+
+void SpotifyTask(void *args)
+{
+  // Initialize LCD
+  lcd.init();
+  lcd.backlight();
+  lcd.createChar(0, note);
+  lcd.createChar(1, person);
+  lcd.createChar(2, album);
+
+  // Initialize WiFi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASSWORD);
+  Serial.println("");
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(SSID);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  lcd.setCursor(0, 0);
+  lcd.print("SSID: ");
+  lcd.println(SSID);
+  lcd.setCursor(0, 1);
+  lcd.print("IP: ");
+  lcd.println(WiFi.localIP());
+
+  client.setCACert(spotify_server_cert);
+
+  Serial.println("Refreshing Access Tokens");
+  if (!spotify.refreshAccessToken())
+  {
+    Serial.println("Failed to get access tokens");
+  }
+
+  // Delay to display the WiFi info on the LCD
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  while (true)
+  {
+    if (millis() - last_spotify_api_call > SPOTIFY_REFRESH_FREQ)
+    {
+      last_spotify_api_call = millis();
+
+      int status = spotify.getCurrentlyPlaying(printCurrentlyPlayingToLCD, SPOTIFY_MARKET);
+      switch (status)
+      {
+      case 200:
+        Serial.println("Successfully got currently playing");
+        break;
+      case 204:
+        Serial.println("Nothing playing");
+        break;
+
+      default:
+        Serial.print("Error: ");
+        Serial.println(status);
+        break;
+      }
+    }
+
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
 
 void setup()
 {
   // Initialize serial communication
   Serial.begin(115200);
 
-  // Initialize bluetooth keyboard lib
+  // Initialize bluetooth keyboard library
   kb.begin();
 
   pinMode(BUILTIN_LED, OUTPUT);
-  button_ms = blink_ms = millis();
+
+  // Create separate task for LCD and connectiong to Spotify API
+  // xTaskCreatePinnedToCore(
+  //     SpotifyTask,
+  //     "Spotify Task",
+  //     2048,
+  //     NULL,
+  //     1,
+  //     NULL,
+  //     0);
 }
 
 void loop()
