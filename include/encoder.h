@@ -1,3 +1,6 @@
+#ifndef ENCODER_H
+#define ENCODER_H
+
 #include <cstdint>
 #include <bits/stl_pair.h>
 
@@ -21,3 +24,5 @@ public:
     void printValues();
     void printLastValues();
 };
+
+#endif
